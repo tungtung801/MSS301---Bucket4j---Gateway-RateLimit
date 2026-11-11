@@ -43,7 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
 
         if (probe.isConsumed()) {
-            response.setHeader("X-RateLimit-Remaining", String.valueOf(probe.getRemainingTokens()));
+            response.setHeader("X-Service-RateLimit-Remaining", String.valueOf(probe.getRemainingTokens()));
             chain.doFilter(request, response);
             return;
         }
