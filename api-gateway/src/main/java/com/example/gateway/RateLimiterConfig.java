@@ -11,15 +11,21 @@ public class RateLimiterConfig {
 
     @Bean
     KeyResolver ipKeyResolver() {
-        return exchange -> Mono.just(
-                Optional.ofNullable(exchange.getRequest().getRemoteAddress())
-                        .map(a -> a.getAddress().getHostAddress())
-                        .orElse("unknown"));
-    }
+        return exchange -> {
+            // Khi dùng proxy, đọc header từ proxy
+            String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
 
-    // Ví dụ theo người dùng (sau khi đã xác thực):
-    // @Bean
-    // KeyResolver userKeyResolver() {
-    //     return exchange -> Mono.justOrEmpty(exchange.getRequest().getHeaders().getFirst("X-User-Id"));
-    // }
+            if(xff != null && !xff.isBlank()){
+                return Mono.just(xff.split(",")[0].trim());
+            }
+
+            // Fallback khi run thẳng vào service bỏ qua proxy
+            var remoteAddress = exchange.getRequest().getRemoteAddress();
+            if(remoteAddress != null && remoteAddress.getAddress() != null){
+                return Mono.just(remoteAddress.getAddress().getHostAddress());
+            }
+
+            return Mono.just("anonymous-client");
+        };
+    }
 }
